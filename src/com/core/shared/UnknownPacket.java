@@ -27,11 +27,11 @@ public class UnknownPacket
 	public static final int DISCONNECT_RESPONSE	= DISCONNECT | RESPONSE;
 	public static final int QUERY_RESPONSE		= QUERY | RESPONSE;
 	
-	public static final int QUERY_ALL 		= QUERY | BROADCAST;	// Used for the heartbeat packet
+	public static final int QUERY_ALL		= QUERY | BROADCAST;	// Used for the heartbeat packet
 	public static final int QUERY_PRIVATE	= QUERY | PRIVATE;		//
 	public static final int MESSAGE_ALL		= MESSAGE | BROADCAST;	// Used for sending generic messages
 	public static final int MESSAGE_PRIVATE	= MESSAGE | PRIVATE;	//
-	public static final int USERS_ALL 		= USERS | BROADCAST;	// Used for the online user list
+	public static final int USERS_ALL		= USERS | BROADCAST;	// Used for the online user list
 	
 	// Helpful message masks
 	public static final int MESSAGE_MASK = 0xA0000020;
