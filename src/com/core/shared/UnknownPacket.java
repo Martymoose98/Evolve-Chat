@@ -24,7 +24,7 @@ public class UnknownPacket
 	public static final int BROADCAST 	= 0x80000000;	// Send the packet to every client on the server
 
 	public static final int CONNECT_RESPONSE 	= CONNECT | RESPONSE;
-	public static final int DISCONNECT_RESPONSE = DISCONNECT | RESPONSE;
+	public static final int DISCONNECT_RESPONSE	= DISCONNECT | RESPONSE;
 	public static final int QUERY_RESPONSE		= QUERY | RESPONSE;
 	
 	public static final int QUERY_ALL 			= QUERY | BROADCAST;	// Used for the heartbeat packet
