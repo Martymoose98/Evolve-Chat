@@ -6,7 +6,7 @@ import java.net.InetAddress;
 public class UnknownPacket
 {
 	public static final int MAX_PACKET_BYTES 	= 0x400; // Maximum packet bytes allowed
-	public static final int TERMINATION_SEQ 	= 0xE0F; // Terminations sequence used to determine the end of the packet
+	public static final int TERMINATION_SEQ 	= 0xE0F; // Termination sequence used to determine the end of the packet
 
 	// Packet type flags
 	public static final int INVALID 	= 0x00000000;	// Invalid packet type
