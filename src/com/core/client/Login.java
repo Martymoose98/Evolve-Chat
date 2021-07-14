@@ -70,14 +70,13 @@ public class Login extends JFrame
 		this.connectButton = new JButton("Connect");
 		this.connectButton.addActionListener(new ActionListener()
 		{
-
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				String name = Login.this.nicknameTextBox.getText();
-				String address = Login.this.addressTextBox.getText();
-				int port = Integer.parseInt(Login.this.portTextBox.getText());
-				Login.this.login(name, address, port);
+				String name = nicknameTextBox.getText();
+				String address = addressTextBox.getText();
+				int port = Integer.parseInt(portTextBox.getText());
+				login(name, address, port);
 			}
 		});
 		this.connectButton.setMnemonic('c');
@@ -114,7 +113,6 @@ public class Login extends JFrame
 	{
 		EventQueue.invokeLater(new Runnable()
 		{
-
 			@Override
 			public void run()
 			{
