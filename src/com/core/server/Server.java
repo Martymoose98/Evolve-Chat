@@ -202,8 +202,13 @@ public class Server implements Runnable
 		case UnknownPacket.MESSAGE_ALL:
 			this.broadcast(new BroadcastPacket(packet));
 			break;
+		case UnknownPacket.MESSAGE_PRIVATE:
+			break;
 		case UnknownPacket.QUERY_RESPONSE:
 			this.markClientActive(new HeartbeatPacket(packet).getId());
+			break;
+		case UnknownPacket.INVALID:
+			System.out.println("Could not process packet. Invalid packet type received.");
 			break;
 		}
 	}
@@ -315,23 +320,19 @@ public class Server implements Runnable
 	private void toggleRawMode()
 	{
 		boolean raw = !this.isRaw.get();
-
-		if (raw)
-			System.out.println("Raw mode on.");
-		else
-			System.out.println("Raw mode off.");
-
+		System.out.println(raw ? "Raw mode on." : "Raw mode off.");	
 		this.isRaw.set(raw);
 	}
 
 	private void printHelp()
 	{
-		System.out.println("Here is a list of all available commands:");
-		System.out.println("=========================================");
-		System.out.println("$raw - Enables raw mode.");
-		System.out.println("$queryclients - Shows all connected clients.");
-		System.out.println("$kick [id | username] - Kicks a client.");
-		System.out.println("$help - Shows this help dialog.");
-		System.out.println("$stop - Shuts down the server.");
+		System.out.println(
+				"Here is a list of all available commands:\n" +
+				"=========================================\n" +
+				"$raw - Enables raw mode.\n" +
+				"$queryclients - Shows all connected clients.\n" +
+				"$kick [id | username] - Kicks a client.\n" + 
+				"$help - Shows this help dialog.\n" + 
+				"$stop - Shuts down the server.\n");
 	}
 }
