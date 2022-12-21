@@ -1,9 +1,10 @@
 package com.core.shared;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
-public class ConnectResponsePacket extends UnknownPacket
+public class ConnectResponsePacket extends UnknownPacket implements Serializable
 {
 	public ConnectResponsePacket(InetAddress address, int port, long id)
 	{
@@ -15,7 +16,7 @@ public class ConnectResponsePacket extends UnknownPacket
 
 	public ConnectResponsePacket(UnknownPacket packet)
 	{
-		super(packet.packet);
+		super(packet.address, packet.port, packet.data);
 	}
 
 	public long getId()

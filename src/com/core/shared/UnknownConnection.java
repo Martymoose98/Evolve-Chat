@@ -15,8 +15,8 @@ public abstract class UnknownConnection
 
 	protected UnknownConnection(InetSocketAddress address)
 	{
-		this.port = address.getPort();
 		this.ip = address.getAddress();
+		this.port = address.getPort();
 	}
 
 	public abstract boolean isValid();

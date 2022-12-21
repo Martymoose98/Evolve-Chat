@@ -1,5 +1,6 @@
 package com.core.server;
 
+import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,7 +12,11 @@ import com.core.shared.BroadcastPacket;
 import com.core.shared.ConnectPacket;
 import com.core.shared.ConnectResponsePacket;
 import com.core.shared.DisconnectPacket;
+import com.core.shared.HandshakeConnection;
+import com.core.shared.HandshakePacket;
+import com.core.shared.HandshakePacket.Protocol;
 import com.core.shared.HeartbeatPacket;
+import com.core.shared.PacketDispatcher;
 import com.core.shared.TCPConnection;
 import com.core.shared.UDPConnection;
 import com.core.shared.UnknownConnection;
@@ -21,14 +26,17 @@ import com.core.shared.UserListPacket;
 public class Server implements Runnable
 {
 	private List<ServerClient> clients;
-	private UnknownConnection connect;
+	protected UnknownConnection connect;
+	private HandshakeConnection handshake;
 	private Thread server;
-	private Thread manage;
-	private Thread send;
-	private Thread receive;
+	private Thread manage;	
+	private Thread receiveHandshake;
+	@SuppressWarnings("unused")
+	private ServerPacketListener incomingPackets;
+	private PacketDispatcher outgoingPackets;
 	private Scanner scanner;
-	private AtomicBoolean isRunning;
-	private AtomicBoolean isRaw;
+	protected AtomicBoolean isRunning;
+	protected AtomicBoolean isRaw;
 
 	public Server(int port, boolean useUDP)
 	{
@@ -36,8 +44,9 @@ public class Server implements Runnable
 		this.clients = Collections.synchronizedList(new ArrayList<ServerClient>());
 		this.isRaw = new AtomicBoolean(false);
 		this.isRunning = new AtomicBoolean(false);
+		this.handshake = new HandshakeConnection(port);	
 		this.connect = useUDP ? new UDPConnection(port) : new TCPConnection(port);
-
+		
 		if (this.connect.isValid())
 		{
 			this.server = new Thread(this, "Server");
@@ -53,8 +62,10 @@ public class Server implements Runnable
 		System.out.println("[SERVER]: " + LocalDateTime.now() + " Server initalized on port " + this.connect.getPort());
 
 		this.heartbeat();
-		this.receive();
-
+		this.receiveHandshake();
+		this.incomingPackets = new ServerPacketListener(this, "Incoming Packets");
+		this.outgoingPackets = new PacketDispatcher(this.connect, this.isRunning, "Outgoing Packets");
+		
 		while (this.isRunning.get())
 		{
 			String text = this.scanner.nextLine();
@@ -114,7 +125,7 @@ public class Server implements Runnable
 		synchronized (this.clients)
 		{
 			for (ServerClient client : this.clients)
-				this.send(new DisconnectPacket(client.address, client.port, client.id, DisconnectPacket.REASON_SERVER_REQUESTED));
+				this.outgoingPackets.send(new DisconnectPacket(client.address, client.port, client.id, DisconnectPacket.REASON_SERVER_REQUESTED));
 		}
 		this.isRunning.set(false);
 		this.close();
@@ -148,8 +159,8 @@ public class Server implements Runnable
 					{
 						for (ServerClient client : clients)
 						{
-							send(new UserListPacket(client.address, client.port, names));
-							client.ping(connect);
+							outgoingPackets.send(new UserListPacket(client.address, client.port, names));
+							client.ping(outgoingPackets);
 						}
 					}
 
@@ -167,20 +178,29 @@ public class Server implements Runnable
 		this.manage.start();
 	}
 
-	private void receive()
+	private void receiveHandshake()
 	{
-		this.receive = new Thread("Inbound Packets")
+		this.receiveHandshake = new Thread("Inbound Handshake Packets")
 		{
 			@Override
 			public void run()
 			{
 				while (isRunning.get())
 				{
-					process(connect.recv());
+					process(handshake.recv());
+					
+					try
+					{
+						Thread.sleep(4000L);
+					}
+					catch (InterruptedException e)
+					{
+						e.printStackTrace();
+					}
 				}
 			}
 		};
-		this.receive.start();
+		this.receiveHandshake.start();
 	}
 
 	private void process(UnknownPacket packet)
@@ -193,6 +213,9 @@ public class Server implements Runnable
 
 		switch (packet.getType())
 		{
+		case UnknownPacket.HANDSHAKE:
+			this.handshake(new HandshakePacket(packet, this.getProtocol()));
+			break;
 		case UnknownPacket.CONNECT:
 			this.connect(new ConnectPacket(packet));
 			break;
@@ -212,62 +235,56 @@ public class Server implements Runnable
 			break;
 		}
 	}
-
-	private void connect(ConnectPacket packet)
+	
+	protected void handshake(HandshakePacket packet)
+	{
+		this.handshake.send(packet);
+	}
+	
+	protected void connect(ConnectPacket packet)
 	{
 		ServerClient client = new ServerClient(packet.getName(), packet.getAddress(), packet.getPort(), UniqueIdentifier.getIndentifier());
 		this.clients.add(client);
-		this.send(new ConnectResponsePacket(client.address, client.port, client.id));
+		this.outgoingPackets.send(new ConnectResponsePacket(client.address, client.port, client.id));
 		System.out.println(client.name + " connected from " + client.address.getHostAddress() + ":" + client.port + " Id: " + client.id);
 	}
 
-	private void disconnect(DisconnectPacket packet)
+	protected void disconnect(DisconnectPacket packet)
 	{
 		ServerClient client = this.getClientById(packet.getId());
 		this.disconnect(client, packet);
 	}
 
-	private void disconnect(ServerClient client, DisconnectPacket packet)
+	protected void disconnect(ServerClient client, DisconnectPacket packet)
 	{
 		if (client == null)
 			return;
 
 		this.clients.remove(client);
-		this.send(packet);
+		this.outgoingPackets.send(packet);
 		String sReason = (packet.getReason() == DisconnectPacket.REASON_TIMEOUT) ? " timed out from " : " disconnected from ";
 		System.out.println(client.name + sReason + client.address.getHostAddress() + ":" + client.port + " Id: " + client.id);
 	}
 
-	private void broadcast(BroadcastPacket packet)
+	protected void broadcast(BroadcastPacket packet)
 	{
 		ServerClient sender = this.getClientById(packet.getId());
 
 		if (sender == null)
 			return;
 
+		String msg = String.format("%s: %s", sender.name, packet.getMessage());
+		
 		synchronized (this.clients)
 		{
 			for (ServerClient client : this.clients)
 			{
-				this.send(new BroadcastPacket(client.address, client.port, client.id, packet.getMessage()));
+				this.outgoingPackets.send(new BroadcastPacket(client.address, client.port, sender.id, msg));
 			}
 		}
 	}
 
-	private void send(final UnknownPacket packet)
-	{
-		this.send = new Thread("Outbound Packets")
-		{
-			@Override
-			public void run()
-			{
-				connect.send(packet);
-			}
-		};
-		this.send.start();
-	}
-
-	private void markClientActive(long id)
+	protected void markClientActive(long id)
 	{
 		this.getClientById(id).markActive();
 	}
@@ -306,17 +323,57 @@ public class Server implements Runnable
 	}
 
 	private byte[] queryClientNames()
-	{
+	{	
 		String users = new String();
-
+		
 		synchronized (this.clients)
 		{
 			for (ServerClient client : this.clients)
 				users += client.name + "\u0000";
+			
+			ByteBuffer dataId = ByteBuffer.allocate(this.clients.size() * Long.BYTES + Integer.BYTES);
+			
+			dataId.putInt(dataId.capacity() / Long.BYTES);
+			
+			for (ServerClient client : this.clients)
+				dataId.putLong(client.id);
+			
+			byte[] data = new byte[dataId.capacity() + users.getBytes().length];
+			
+			System.arraycopy(dataId.array(), 0, data, 0, dataId.capacity());
+			System.arraycopy(users.getBytes(), 0, data, dataId.capacity(), users.getBytes().length);
+			return data;
 		}
-		return users.getBytes();
 	}
+	
+//	private byte[] queryClientNames()
+//	{	
+//		String users = new String();
+//		
+//		synchronized (this.clients)
+//		{
+//			for (ServerClient client : this.clients)
+//				users += client.name + "\u0000";		
+//		}
+//		return users.getBytes();
+//	}
 
+	protected Protocol getProtocol()
+	{
+		if (this.connect.isValid())
+		{
+			if (this.connect instanceof UDPConnection)
+			{
+				return Protocol.UDP;
+			}
+			else if (this.connect instanceof TCPConnection)
+			{
+				return Protocol.TCP;
+			}
+		}
+		return Protocol.UNKNOWN;
+	}
+	
 	private void toggleRawMode()
 	{
 		boolean raw = !this.isRaw.get();

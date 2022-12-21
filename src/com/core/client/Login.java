@@ -30,7 +30,7 @@ public class Login extends JFrame
 		this.setResizable(false);
 		this.setIconImage(Toolkit.getDefaultToolkit().getImage(Login.class.getResource("/textures/icon32.png")));
 		this.setTitle("Ev0lve Chat | Login");
-		this.setDefaultCloseOperation(3);
+		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		this.setSize(350, 450);
 		this.setLocationRelativeTo(null);
 		this.contentPane = new JPanel();
@@ -82,7 +82,7 @@ public class Login extends JFrame
 		this.connectButton.setMnemonic('c');
 		this.connectButton.setBounds(95, 282, 153, 23);
 		this.contentPane.add(this.connectButton);
-		this.lblInfo = new JLabel("Copyright \u24b8 Ev0lve Corperation 2020. All Rights Reserved\u00ae");
+		this.lblInfo = new JLabel("Copyright \u24b8 Ev0lve Corperation 2022. All Rights Reserved\u00ae");
 		this.lblInfo.setBounds(16, 392, 312, 18);
 		this.contentPane.add(this.lblInfo);
 	}
@@ -109,7 +109,7 @@ public class Login extends JFrame
 		return true;
 	}
 
-	public static void main(String[] args)
+	public static void newInstance()
 	{
 		EventQueue.invokeLater(new Runnable()
 		{
@@ -127,5 +127,10 @@ public class Login extends JFrame
 				}
 			}
 		});
+	}
+	
+	public static void main(String[] args)
+	{
+		Login.newInstance();
 	}
 }
