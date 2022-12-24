@@ -21,6 +21,11 @@ class Facto<E>
 	}
 }
 
+/*
+ * https://stackoverflow.com/questions/75175/create-instance-of-generic-type-in-java
+ * https://www.baeldung.com/java-generic-array
+ * new generic array java
+ */
 public class ArrayT<T> extends Container
 {
 	static class Factory<T>

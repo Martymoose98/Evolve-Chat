@@ -84,12 +84,12 @@ public class Client
 		this.iface.append(Color.GREEN, Color.BLACK, packet.getMessage() + "\n");
 	}
 	
-	public void onlineListUpdate(UserListPacket packet)
+	public void updateOnlineUsers(UserListPacket packet)
 	{
 		this.users.update(packet.getUsers());
 	}
 	
-	public void unknownPackectRecieved(UnknownPacket packet)
+	public void unknownPacketRecieved(UnknownPacket packet)
 	{
 		this.iface.consolefln(Color.RED, "[%s] Strange packet received:\n%s\n", this.name, this.connect);
 	}

@@ -2,6 +2,7 @@ package com.core.shared.serialization;
 
 import static com.core.shared.serialization.SerializationWriter.writeBytes;
 
+// REF: https://www.youtube.com/watch?v=70wq6AvpPdY&list=PLlrATfBNZ98cCfmH0xPebdVVMSYRQfyKi&index=10
 public abstract class Array extends Container
 {
 	public byte primitiveType; // primitive type

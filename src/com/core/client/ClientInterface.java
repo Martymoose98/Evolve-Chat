@@ -43,7 +43,7 @@ public class ClientInterface extends JFrame
 {
 	private static final long serialVersionUID = -3997400817304440729L;
 
-	private static final String TITLE = "Ev0lve Chat Client | Build 0.15";
+	private static final String TITLE = "Ev0lve Chat Client | Build 0.16";
 	private static final String DEFAULT_MSG = "What are you thinking?";
 	
 	private JPanel contentPane;
@@ -52,6 +52,7 @@ public class ClientInterface extends JFrame
 	private JMenuBar menuBar;
 	private JMenu menu;
 	private JSplitPane splitPane;
+	
 	private DefaultCaret caret;
 	private Client client;
 
@@ -94,7 +95,7 @@ public class ClientInterface extends JFrame
 		{
 			// FIXME: This is super broken! The menu
 			// only opens the login dialog once per ClientInterface instance!
-			// I think this is relatively low priority however. I would much 
+			// I think this is relatively low priority. I would much 
 			// rather get TCP/UDP/Handshake communications sorted!
 			@Override
 			public void menuSelected(MenuEvent e)
@@ -235,7 +236,7 @@ public class ClientInterface extends JFrame
 	{
 		if (message.isEmpty() || message.equals(DEFAULT_MSG))
 			return;
-
+	
 		this.client.send(new BroadcastPacket(this.client.getConnection(), this.client.getId(), message));
 	}
 
@@ -306,7 +307,7 @@ public class ClientInterface extends JFrame
 			heightSum += height;
 		}
 
-		System.out.println("Computed Layout Size is: " + widthSum + "x" + heightSum);
+		System.out.println("Computed layout size is: " + widthSum + "x" + heightSum);
 	}
 
 	private boolean getLookAndFeel()

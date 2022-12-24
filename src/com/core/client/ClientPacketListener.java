@@ -39,10 +39,10 @@ public class ClientPacketListener extends PacketListener
 			this.client.send(new HeartbeatPacket(this.connect, this.client.getId()));
 			break;
 		case UnknownPacket.USERS_ALL:
-			this.client.onlineListUpdate(new UserListPacket(packet));
+			this.client.updateOnlineUsers(new UserListPacket(packet));
 			break;
 		default:
-			this.client.unknownPackectRecieved(packet);
+			this.client.unknownPacketRecieved(packet);
 			break;
 		}
 	}
