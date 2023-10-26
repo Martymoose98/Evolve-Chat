@@ -1,14 +1,27 @@
 package com.core.shared;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
-public class DisconnectPacket extends UnknownPacket
+public class DisconnectPacket extends UnknownPacket implements Serializable
 {
 	public static final int REASON_USER_REQUESTED = 0;
 	public static final int REASON_SERVER_REQUESTED = 1;
 	public static final int REASON_TIMEOUT = 2;
 
+//	public enum Reason
+//	{
+//		UNKNOWN(0), 
+//		USER_REQUESTED(1),
+//		REASON_SERVER_REQUESTED(2),
+//		REASON_TIMEOUT(3);
+//
+//		protected final int value;
+//		
+//		Reason(int value) { this.value = value; }
+//	}
+//	
 	public DisconnectPacket(UnknownConnection connect, long id, int reason)
 	{
 		super(connect, ByteBuffer.allocate(Integer.BYTES * 3 + Long.BYTES)
@@ -29,7 +42,7 @@ public class DisconnectPacket extends UnknownPacket
 
 	public DisconnectPacket(UnknownPacket packet)
 	{
-		super(packet.packet);
+		super(packet.address, packet.port, packet.data);
 	}
 
 	public long getId()

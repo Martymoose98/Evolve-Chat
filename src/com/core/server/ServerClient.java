@@ -1,11 +1,13 @@
 package com.core.server;
 
+import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import com.core.shared.DisconnectPacket;
 import com.core.shared.HeartbeatPacket;
-import com.core.shared.UnknownConnection;
+import com.core.shared.PacketDispatcher;
 import com.core.shared.UnknownPacket;
-import java.net.InetAddress;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServerClient
 {
@@ -30,13 +32,13 @@ public class ServerClient
 		return this.attempt.getAndIncrement() >= MAX_HEARTBEAT_ATTEMPTS;
 	}
 
-	public void ping(UnknownConnection connect)
+	public void ping(PacketDispatcher dispatcher)
 	{
 		UnknownPacket packet = this.didTimeout() ? 
-				new DisconnectPacket(connect, this.id, DisconnectPacket.REASON_TIMEOUT) 
+				new DisconnectPacket(dispatcher.getConnection(), this.id, DisconnectPacket.REASON_TIMEOUT) 
 				: new HeartbeatPacket(this.address, this.port, this.id);
 		
-		connect.send(packet);
+		dispatcher.send(packet);
 	}
 
 	public void markActive()
@@ -47,5 +49,14 @@ public class ServerClient
 	public String toString()
 	{
 		return this.name + " IPv4: " + this.address.getHostAddress() + ":" + this.port + " Id: " + this.id;
+	}
+	
+	public byte[] toBytes()
+	{
+		ByteBuffer buffer = ByteBuffer.allocate(this.name.length() * Character.BYTES + Integer.BYTES + Long.BYTES);	
+		buffer.put(this.name.getBytes());
+		buffer.putInt(0);
+		buffer.putLong(this.id);
+		return buffer.array();
 	}
 }

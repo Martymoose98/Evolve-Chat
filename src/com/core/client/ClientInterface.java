@@ -14,68 +14,114 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.DefaultCaret;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyleContext;
+import javax.swing.text.StyledDocument;
 
 import com.core.shared.BroadcastPacket;
-import com.core.shared.ConnectPacket;
-import com.core.shared.ConnectResponsePacket;
 import com.core.shared.DisconnectPacket;
-import com.core.shared.HeartbeatPacket;
-import com.core.shared.UnknownPacket;
-import com.core.shared.UserListPacket;
 
 public class ClientInterface extends JFrame
 {
 	private static final long serialVersionUID = -3997400817304440729L;
 
+	private static final String TITLE = "Ev0lve Chat Client | Build 0.16";
+	private static final String DEFAULT_MSG = "What are you thinking?";
+	
 	private JPanel contentPane;
 	private JTextField txtMessage;
-	private JTextArea chatlog;
-	private OnlineUserList<String> users;
-	private DefaultCaret caret;
-	private String defaultMsg = "What are you thinking?";
-	private Thread listen;
-	private Client client;
-	private AtomicBoolean isRunning = new AtomicBoolean(true);
+	private JTextPane chatlog;
 	private JMenuBar menuBar;
+	private JMenu menu;
 	private JSplitPane splitPane;
+	
+	private DefaultCaret caret;
+	private Client client;
 
 	public ClientInterface(String name, String address, int port)
 	{
-		this.client = new Client(name);
-		
-		if (!this.client.openConnection(address, port, true))
+		this.client = new Client(this, name);	
+		this.createWindow();
+			
+		if (!this.client.openConnection(address, port))
 		{
 			System.err.println("Could not create a connection! IPv4 Address: " + address + ":" + port);
 		}
-		
-		this.createWindow();
-		this.listen();
-		this.client.send(new ConnectPacket(this.client.getConnection(), name));
+	
 	}
 
 	private void createWindow()
 	{
 		this.getLookAndFeel();
-		this.setTitle("Ev0lve Chat Client | Build 0.07");
+		this.setTitle(TITLE);
 		this.setIconImage(Toolkit.getDefaultToolkit().getImage(Client.class.getResource("/textures/icon32.png")));
-		this.setDefaultCloseOperation(3);
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setSize(880, 600);
 		this.setLocationRelativeTo(null);
+		this.addWindowListener(new WindowAdapter()
+		{
+			@Override
+			public void windowClosing(WindowEvent e)
+			{
+				if (client.getConnection().isValid())
+				{
+					client.send(new DisconnectPacket(client.getConnection(), client.getId(), DisconnectPacket.REASON_USER_REQUESTED));
+				}
+				client.setRunning(false);
+			}
+		});
+		
 		this.menuBar = new JMenuBar();
+		this.menu = new JMenu("New");
+		this.menu.addMenuListener(new MenuListener()
+		{
+			// FIXME: This is super broken! The menu
+			// only opens the login dialog once per ClientInterface instance!
+			// I think this is relatively low priority. I would much 
+			// rather get TCP/UDP/Handshake communications sorted!
+			@Override
+			public void menuSelected(MenuEvent e)
+			{
+				// TODO Auto-generated method stub
+				//System.out.println(e);
+				Login.newInstance();
+				//delete();
+			}
+
+			@Override
+			public void menuDeselected(MenuEvent e)
+			{
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void menuCanceled(MenuEvent e)
+			{
+				// TODO Auto-generated method stub
+
+			}
+		});
+		
+		this.menuBar.add(this.menu);
 		this.setJMenuBar(this.menuBar);
 		this.contentPane = new JPanel();
 		this.contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -85,31 +131,20 @@ public class ClientInterface extends JFrame
 		gbl_contentPane.rowHeights = new int[] { 25, 535, 40 };
 		this.contentPane.setLayout(gbl_contentPane);
 
-		this.addWindowListener(new WindowAdapter()
-		{
-			@Override
-			public void windowClosing(WindowEvent e)
-			{
-				isRunning.set(false);
-				
-				if (client.getConnection().isValid())
-				{
-					client.send(new DisconnectPacket(client.getConnection(), client.getId(), 0));
-					client.close();
-				}
-			}
-		});
-
 		this.computeLayoutSize(gbl_contentPane.columnWidths, gbl_contentPane.rowHeights);
-		this.chatlog = new JTextArea();
+		this.chatlog = new JTextPane();
 		this.chatlog.setForeground(Color.BLACK);
-		this.chatlog.setEditable(false);
+		
+		// FIXME: find out how to do this for JTextPane
+		//this.chatlog.setWrapStyleWord(true);
+		//this.chatlog.setLineWrap(true);
+		
 		this.caret = (DefaultCaret) this.chatlog.getCaret();
-		this.caret.setUpdatePolicy(2);
+		this.caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		JScrollPane scroll = new JScrollPane(this.chatlog);
 		scroll.setPreferredSize(new Dimension(700, 450));
-		this.users = new OnlineUserList<String>();
-		this.splitPane = new JSplitPane(1, scroll, this.users);
+		
+		this.splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scroll, this.client.getOnlineUsers());
 		GridBagConstraints gbc_splitPane = new GridBagConstraints();
 		gbc_splitPane.insets = new Insets(0, 5, 5, 5);
 		gbc_splitPane.fill = 1;
@@ -127,7 +162,7 @@ public class ClientInterface extends JFrame
 			@Override
 			public void keyPressed(KeyEvent e)
 			{
-				int keycode = e.getExtendedKeyCode();	
+				int keycode = e.getExtendedKeyCode();
 				if (keycode == KeyEvent.VK_ENTER)
 				{
 					send(txtMessage.getText());
@@ -135,13 +170,13 @@ public class ClientInterface extends JFrame
 				}
 			}
 		});
-		
+
 		this.txtMessage.addFocusListener(new FocusAdapter()
 		{
 			@Override
 			public void focusGained(FocusEvent e)
 			{
-				if (txtMessage.getText().equals(defaultMsg))
+				if (txtMessage.getText().equals(DEFAULT_MSG))
 				{
 					txtMessage.setText(null);
 					txtMessage.setForeground(Color.BLACK);
@@ -154,12 +189,13 @@ public class ClientInterface extends JFrame
 				if (txtMessage.getText().equals(""))
 				{
 					txtMessage.setForeground(Color.LIGHT_GRAY);
-					txtMessage.setText(defaultMsg);
+					txtMessage.setText(DEFAULT_MSG);
 				}
 			}
 		});
+		
 		this.txtMessage.setForeground(Color.LIGHT_GRAY);
-		this.txtMessage.setText("What are you thinking?");
+		this.txtMessage.setText(DEFAULT_MSG);
 		GridBagConstraints gbc_txtMessage = new GridBagConstraints();
 		gbc_txtMessage.insets = new Insets(0, 0, 0, 5);
 		gbc_txtMessage.fill = 2;
@@ -179,7 +215,7 @@ public class ClientInterface extends JFrame
 			{
 				send(txtMessage.getText());
 				txtMessage.setForeground(Color.LIGHT_GRAY);
-				txtMessage.setText(defaultMsg);
+				txtMessage.setText(DEFAULT_MSG);
 			}
 		});
 
@@ -195,88 +231,83 @@ public class ClientInterface extends JFrame
 	}
 
 	// TODO: add timestamp? Figure out a better way to not say the default filler message
-	// than  if (message.equals(defaultMsg)) return;
+	// than if (message.equals(defaultMsg)) return;
 	private void send(String message)
 	{
-		if (message.isEmpty() || message.equals(defaultMsg))
+		if (message.isEmpty() || message.equals(DEFAULT_MSG))
 			return;
-
-		message = this.client.getName() + ": " + message;
+	
 		this.client.send(new BroadcastPacket(this.client.getConnection(), this.client.getId(), message));
 	}
 
-	public void listen()
+	public void append(Color userColor, Color color, String message)
 	{
-		this.listen = new Thread("Inbound Packets")
-		{
-			@Override
-			public void run()
-			{
-				while (isRunning.get())
-				{
-					UnknownPacket packet = client.receive();
-
-					if (packet == null)
-						continue;
-
-					switch (packet.getType())
-					{
-					case UnknownPacket.CONNECT_RESPONSE:
-						ConnectResponsePacket response = new ConnectResponsePacket(packet);
-						client.setId(response.getId());
-						consoleln("Successfully connected to server! IP: " + client.getConnection() + " ID: " + client.getId());
-						consoleln("Welcome, " + client.getName());
-						break;
-					case UnknownPacket.DISCONNECT:
-						DisconnectPacket disconnect = new DisconnectPacket(packet);
-						client.close();
-						consoleln("Successfully disconnected from server! Reason: " + disconnect.getReason() + " IP: " + client.getConnection() + " ID: " + client.getId());
-						break;
-					case UnknownPacket.MESSAGE_ALL:
-						BroadcastPacket broadcast = new BroadcastPacket(packet);
-						consoleln(broadcast.getMessage());
-						break;
-					case UnknownPacket.QUERY_ALL:
-						client.send(new HeartbeatPacket(client.getConnection(), client.getId()));
-						break;
-					case UnknownPacket.USERS_ALL:
-						users.update(new UserListPacket(packet).getUsers());
-						break;
-					}
-				}
-			}
-		};
-		this.listen.start();
+		int iColon = message.indexOf(':');
+		String vocalizer = message.substring(0, iColon);
+		String msg = message.substring(iColon);
+		
+		StyledDocument doc = this.chatlog.getStyledDocument();
+		StyleContext sc = StyleContext.getDefaultStyleContext();
+	    AttributeSet assetUsrSet = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, userColor);
+	    AttributeSet assetSet = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, color);
+	    
+	    this.chatlog.setCaretPosition(doc.getLength());
+	    this.chatlog.setCharacterAttributes(assetUsrSet, false);
+	    this.chatlog.replaceSelection(vocalizer);
+	    this.chatlog.setCaretPosition(doc.getLength());
+	    this.chatlog.setCharacterAttributes(assetSet, false);
+	    this.chatlog.replaceSelection(msg);
 	}
-
-	public void console(String message)
+	
+	public void append(Color color, String message)
 	{
-		this.chatlog.append(message);
+		StyledDocument doc = this.chatlog.getStyledDocument();
+		StyleContext sc = StyleContext.getDefaultStyleContext();
+	    AttributeSet assetSet = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, color);
+	    
+	    this.chatlog.setCaretPosition(doc.getLength());
+	    this.chatlog.setCharacterAttributes(assetSet, false);
+	    this.chatlog.replaceSelection(message);
 	}
-
-	public void consoleln(String message)
+	
+	public void consolefln(Color color, String format, Object... args)
 	{
-		this.chatlog.append(message + "\n");
+		consoleln(color, String.format(format, args));
+	}
+	
+	public void consoleln(Color color, String message)
+	{
+		console(color, message + "\n");
+	}
+	
+	public void consolef(Color color, String format, Object... args)
+	{
+		console(color, String.format(format, args));
+	}
+	
+	public void console(Color color, String message)
+	{
+		append(color, message);
 	}
 
 	private void computeLayoutSize(int[] widths, int[] heights)
 	{
 		int heightSum = 0;
 		int widthSum = 0;
-		
+
 		for (int i = 0; i < widths.length; ++i)
 		{
 			int width = widths[i];
 			widthSum += width;
 		}
-		
+
 		for (int i = 0; i < heights.length; ++i)
 		{
 			int height = heights[i];
 			heightSum += height;
 		}
 
-		System.out.println("Computed Layout Size is: " + widthSum + "x" + heightSum);
+		System.out.println("Computed layout size is: " + widthSum + "x" + heightSum);
 	}
 
 	private boolean getLookAndFeel()

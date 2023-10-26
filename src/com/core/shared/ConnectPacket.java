@@ -1,8 +1,9 @@
 package com.core.shared;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 
-public class ConnectPacket extends UnknownPacket
+public class ConnectPacket extends UnknownPacket implements Serializable
 {
 	public ConnectPacket(UnknownConnection connect, String name)
 	{
@@ -14,7 +15,7 @@ public class ConnectPacket extends UnknownPacket
 
 	public ConnectPacket(UnknownPacket packet)
 	{
-		super(packet.packet);
+		super(packet.address, packet.port, packet.data);
 	}
 
 	public String getName()

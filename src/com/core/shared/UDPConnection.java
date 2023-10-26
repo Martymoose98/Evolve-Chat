@@ -1,8 +1,8 @@
 package com.core.shared;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
 import java.net.SocketException;
 
 public class UDPConnection extends UnknownConnection
@@ -11,7 +11,7 @@ public class UDPConnection extends UnknownConnection
 
 	public UDPConnection(int port)
 	{
-		super(new InetSocketAddress("127.0.0.1", port));
+		super("127.0.0.1", port);
 		
 		try
 		{
@@ -52,7 +52,7 @@ public class UDPConnection extends UnknownConnection
 		
 		try
 		{
-			this.socket.send(packet.packet);
+			this.socket.send(packet.createDatagramPacket());
 		}
 		catch (IOException e)
 		{
@@ -66,20 +66,22 @@ public class UDPConnection extends UnknownConnection
 	public UnknownPacket recv()
 	{
 		UnknownPacket unknown = null;
-		
+
 		if (this.isValid())
 		{
 			unknown = new UnknownPacket(this);
+			DatagramPacket packet = unknown.createDatagramPacket();
+			
 			try
 			{
-				this.socket.receive(unknown.packet);
+				this.socket.receive(packet);
 			}
 			catch (IOException e)
 			{
 				e.printStackTrace();
 				return null;
 			}
-			unknown.parse();
+			unknown.parse(packet);
 		}
 		return unknown;
 	}
@@ -87,8 +89,6 @@ public class UDPConnection extends UnknownConnection
 	@Override
 	public void close()
 	{
-		this.send(new UnknownPacket(this));
-		
 		synchronized (this.socket)
 		{
 			this.socket.close();

@@ -1,9 +1,10 @@
 package com.core.shared;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
-public class BroadcastPacket extends UnknownPacket
+public class BroadcastPacket extends UnknownPacket implements Serializable
 {
 	public BroadcastPacket(UnknownConnection connect, long id, String message)
 	{
@@ -11,7 +12,7 @@ public class BroadcastPacket extends UnknownPacket
 				.putInt(MESSAGE_ALL)
 				.putLong(id)
 				.put(message.getBytes())
-				.putInt(3599).array());
+				.putInt(TERMINATION_SEQ).array());
 	}
 
 	public BroadcastPacket(InetAddress address, int port, long id, String message)
@@ -20,12 +21,12 @@ public class BroadcastPacket extends UnknownPacket
 				.putInt(MESSAGE_ALL)
 				.putLong(id)
 				.put(message.getBytes())
-				.putInt(3599).array());
+				.putInt(TERMINATION_SEQ).array());
 	}
 
 	public BroadcastPacket(UnknownPacket packet)
 	{
-		super(packet.packet);
+		super(packet.address, packet.port, packet.data);
 	}
 
 	public long getId()

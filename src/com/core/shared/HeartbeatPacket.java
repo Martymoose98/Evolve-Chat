@@ -1,9 +1,10 @@
 package com.core.shared;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
-public class HeartbeatPacket extends UnknownPacket
+public class HeartbeatPacket extends UnknownPacket implements Serializable
 {
 	public HeartbeatPacket(UnknownConnection connect, long id)
 	{
@@ -23,7 +24,7 @@ public class HeartbeatPacket extends UnknownPacket
 
 	public HeartbeatPacket(UnknownPacket packet)
 	{
-		super(packet.packet);
+		super(packet.address, packet.port, packet.data);
 	}
 
 	public long getId()
